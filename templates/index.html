@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EEG Emotion Poetry</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入FileSaver.js用于文件下载 -->
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <!-- 引入jszip用于生成docx -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5', // 主色调：靛蓝色，代表科技与平静
+                        secondary: '#EC4899', // 辅助色：粉色，代表情感
+                        neutral: '#64748B', // 中性色：石板灰
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        serif: ['Georgia', 'serif'],
+                        poem: ['Merriweather', 'Georgia', 'serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            }
+            .bg-blur {
+                backdrop-filter: blur(8px);
+            }
+            .transition-height {
+                transition: max-height 0.5s ease-in-out;
+            }
+        }
+    </style>
+    
+    <style>
+        /* 全局样式 */
+        body {
+            background-image: url('https://picsum.photos/id/1055/1920/1080');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            min-height: 100vh;
+        }
+        
+        /* 诗歌样式 */
+        .poem-line {
+            margin-bottom: 1rem;
+            transition: opacity 0.5s ease-in-out;
+        }
+        
+        /* 加载动画 */
+        .loader {
+            border-top-color: #4F46E5;
+            animation: spinner 1s linear infinite;
+        }
+        
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 背景动画效果 */
+        .bg-overlay {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
+        }
+        
+        /* 表单输入焦点效果 */
+        input:focus, select:focus, textarea:focus {
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+
+        /* 音乐播放器样式 */
+        .music-player {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* 图片容器样式 */
+        .image-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+
+        .image-container img {
+            transition: transform 0.3s ease;
+        }
+
+        .image-container:hover img {
+            transform: scale(1.05);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="font-sans text-gray-800">
+    <div class="bg-overlay min-h-screen">
+        <div class="container mx-auto px-4 py-8 max-w-6xl">
+            <!-- 页面标题 -->
+            <header class="text-center mb-8">
+                <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-white text-shadow mb-2">
+                    Memory INK
+                </h1>
+                <p class="text-[clamp(1rem,2vw,1.25rem)] text-white/90 max-w-2xl mx-auto">
+                    Do you have a story you would like to tell? Fill in your profile and witness a poem's creation in 1 or 2 minutes.
+                </p>
+            </header>
+            
+            <!-- 情绪分类结果区域 -->
+            <section id="emotion-section" class="bg-white/80 bg-blur rounded-xl p-6 shadow-lg mb-8 transform transition-all duration-300 hover:shadow-xl">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fa fa-brain mr-3 text-primary"></i> <!-- 使用brain图标表示脑电信号 -->
+                    Emotion Classification
+                </h2>
+                <div id="emotion-status" class="text-xl text-gray-700 py-6 text-center">
+                    <div class="loader w-10 h-10 rounded-full border-4 border-gray-200 mx-auto mb-4"></div>
+                    Classifying your emotion...
+                </div>
+                <div id="emotion-result" class="hidden text-xl text-gray-700 py-6 text-center">
+                    <!-- 情绪结果将在这里显示 -->
+                </div>
+            </section>
+            
+            <!-- 主内容区：表单和诗歌展示 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- 左侧：用户属性表单 -->
+                <section class="bg-white/80 bg-blur rounded-xl p-6 shadow-lg transform transition-all duration-300 hover:shadow-xl">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+                        <i class="fa fa-user mr-3 text-primary"></i>
+                        Your Profile
+                    </h2>
+                    
+                    <form id="user-form" class="space-y-5">
+                        <!-- 性别 -->
+                        <div>
+                            <label for="gender" class="block text-gray-700 font-medium mb-2">Gender</label>
+                            <select id="gender" name="gender" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all" required>
+                                <option value="" disabled selected>Select your gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="non-binary">Non-binary</option>
+                                <option value="prefer-not-to-say">Prefer not to say</option>
+                            </select>
+                        </div>
+                        
+                        <!-- 年龄 -->
+                        <div>
+                            <label for="age" class="block text-gray-700 font-medium mb-2">Age</label>
+                            <input type="number" id="age" name="age" min="1" max="120" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all" placeholder="Enter your age" required>
+                        </div>
+                        
+                        <!-- 职业 -->
+                        <div>
+                            <label for="occupation" class="block text-gray-700 font-medium mb-2">Occupation</label>
+                            <input type="text" id="occupation" name="occupation" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all" placeholder="Enter your occupation" required>
+                        </div>
+
+                        <!-- 新增字段：相关人物 -->
+                        <div>
+                            <label for="relationship_with_person" class="block text-gray-700 font-medium mb-2">Person</label>
+                            <input type="text" id="relationship_with_person" name="relationship_with_person" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all" placeholder="Who is the person that you want? For example, 'mother'" required>
+                        </div>
+
+                        <!-- 新增字段：人物称呼 -->
+                        <div>
+                            <label for="how_you_refer_to_person" class="block text-gray-700 font-medium mb-2">Name</label>
+                            <input type="text" id="how_you_refer_to_person" name="how_you_refer_to_person" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all" placeholder="How do you refer to this person? For example, 'Stella'" required>
+                        </div>
+
+                        <!-- 新增字段：事件描述 -->
+                        <div>
+                            <label for="event_involving_person" class="block text-gray-700 font-medium mb-2">Event</label>
+                            <textarea id="event_involving_person" name="event_involving_person" rows="2" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all" placeholder="An important event that involves this person. For example, 'fight with wife'" required></textarea>
+                        </div>
+
+                        <!-- 新增字段：事件地点 -->
+                        <div>
+                            <label for="place_where_event_occured" class="block text-gray-700 font-medium mb-2">Place</label>
+                            <input type="text" id="place_where_event_occured" name="place_where_event_occured" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all" placeholder="Where did this event happen? For example, 'the kitchen in my home'" required>
+                        </div>
+
+                        <!-- 新增非必填项：视觉细节 -->
+                        <div>
+                            <label for="visual_detail" class="block text-gray-700 font-medium mb-2">Visual Detail</label>
+                            <input type="text" id="visual_detail" name="visual_detail" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all" placeholder="(Optional)For example, 'red face'">
+                        </div>
+
+                        <!-- 新增非必填项：听觉细节 -->
+                        <div>
+                            <label for="auditory_detail" class="block text-gray-700 font-medium mb-2">Auditory Detail</label>
+                            <input type="text" id="auditory_detail" name="auditory_detail" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all" placeholder="(Optional)For example, 'Stella said I regret marrying you'">
+                        </div>
+
+                        <!-- 新增非必填项：触觉细节 -->
+                        <div>
+                            <label for="tactile_detail" class="block text-gray-700 font-medium mb-2">Tactile Detail</label>
+                            <input type="text" id="tactile_detail" name="tactile_detail" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all" placeholder="(Optional)For example, 'her slap'">
+                        </div>
+                        
+                        <!-- 生成诗歌按钮 -->
+                        <div class="pt-4">
+                            <button type="button" id="generate-poem-btn" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" disabled>
+                                <i class="fa fa-magic mr-2"></i> Generate Poem
+                            </button>
+                            <small class="block text-sm text-gray-600 mt-2 text-center">* You can give the poem a title and then use the design application Canva to do whatever you please with it; it is all yours.</small>
+                        </div>
+                    </form>
+                </section>
+                
+                <!-- 右侧：诗歌展示区域 -->
+                <section class="bg-white/80 bg-blur rounded-xl p-6 shadow-lg transform transition-all duration-300 hover:shadow-xl flex flex-col">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+                        <i class="fa fa-book mr-3 text-secondary"></i>
+                        Your Poem
+                    </h2>
+                    
+                    <!-- 诗歌生成状态 -->
+                    <div id="poem-loading" class="hidden flex-1 flex flex-col items-center justify-center">
+                        <div class="loader w-12 h-12 rounded-full border-4 border-gray-200 mb-6"></div>
+                        
+                        <!-- 美化后的引言 -->
+                        <div class="quote-container font-serif text-center mb-8 max-w-lg">
+                            <div id="animated-quote" class="text-2xl md:text-3xl text-gray-700 leading-relaxed tracking-wide">
+                                <!-- 单词将通过JS动态添加 -->
+                            </div>
+                        </div>
+                        
+                        <p class="text-xl text-gray-700">Generating your poem...</p>
+                    </div>
+                    
+                    <!-- 诗歌未生成时的提示 -->
+                    <div id="poem-prompt" class="flex-1 flex flex-col items-center justify-center text-center p-6">
+                        <i class="fa fa-quote-left text-5xl text-gray-300 mb-6"></i>
+                        <p class="text-lg text-gray-600 max-w-md">
+                            Once your emotion is classified and you've completed your profile, click "Generate Poem" to create a personalized poem just for you.
+                        </p>
+                    </div>
+                    
+                    <!-- 诗歌展示区域 -->
+                    <div id="poem-result" class="hidden flex-1 overflow-y-auto mb-6">
+                        <div class="poem-content font-poem text-lg text-gray-700 leading-relaxed tracking-wide">
+                            <!-- 诗歌内容将在这里显示 -->
+                        </div>
+                    </div>
+
+                    <!-- Poetry Narration Player (with Background Music) -->
+                    <div id="narration-section" class="hidden p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 mb-4">
+                        <div class="flex items-center mb-3">
+                            <i class="fa fa-volume-up text-purple-600 mr-2"></i>
+                            <h3 class="text-lg font-semibold text-gray-800">Poetry Narration (with Background Music)</h3>
+                            <span id="narration-status" class="ml-auto text-sm text-gray-600">Generating...</span>
+                        </div>
+                        <audio id="narration-player" controls class="w-full" style="height: 50px;">
+                            <source id="narration-source" src="" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                        <p class="text-xs text-gray-500 mt-2 flex items-center">
+                            <i class="fa fa-info-circle mr-1"></i>
+                            AI voice narration of your exclusive poetry, automatically mixed with emotion-matched background music
+                        </p>
+                    </div>
+
+                    <!-- 诗歌下载按钮 -->
+                    <div id="download-section" class="hidden mt-6 pt-6 border-t border-gray-200">
+                        <button id="download-poem" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]">
+                            <i class="fa fa-download mr-2"></i> Download as Word Document
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 音乐和图片展示区域（多智能体功能） -->
+            <div id="multimedia-section" class="hidden mt-8 space-y-8">
+                <!-- 图片展示区域 -->
+                <section id="image-section" class="bg-white/90 bg-blur rounded-xl p-6 shadow-lg fade-in">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+                        <i class="fa fa-image mr-3 text-secondary"></i>
+                        Your Memory Scene
+                    </h2>
+                    <div class="image-container">
+                        <img id="memory-image" src="" alt="Memory Scene" class="w-full h-auto rounded-lg shadow-lg">
+                        <p id="image-description" class="mt-4 text-gray-600 text-center italic"></p>
+                    </div>
+                </section>
+
+                <!-- 音乐播放器（已集成到朗读中，此部分隐藏） -->
+                <section id="music-section" class="hidden bg-white/90 bg-blur rounded-xl p-6 shadow-lg fade-in">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+                        <i class="fa fa-music mr-3 text-primary"></i>
+                        Background Music (Integrated with Narration)
+                    </h2>
+                    <div class="music-player p-6 rounded-lg text-white">
+                        <div class="text-center mb-6">
+                            <i class="fa fa-headphones text-6xl mb-4 opacity-80"></i>
+                            <h3 id="music-title" class="text-2xl font-bold mb-2">Selecting music...</h3>
+                            <p id="music-description" class="text-white/80">Based on your emotional state</p>
+                        </div>
+                        <audio id="audio-player" controls class="w-full mt-4">
+                            <source id="audio-source" src="" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                        <div class="mt-4 text-sm text-white/70 text-center" id="music-explanation"></div>
+                    </div>
+                </section>
+
+                <!-- 下载完整包按钮 -->
+                <div class="text-center">
+                    <button id="download-complete" class="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white font-medium py-4 px-8 rounded-lg transition-all transform hover:scale-105 text-lg shadow-lg">
+                        <i class="fa fa-download mr-2"></i> Download Complete Memory Package
+                    </button>
+                </div>
+            </div>
+
+            <!-- 页脚 -->
+            <footer class="mt-12 text-center text-white/70 text-sm">
+                <p>MOMO V7; 2025 | Multi-Agent Memory System</p>
+                <p class="mt-2">Powered by Emotion Analysis • Poetry • Music • Image Generation</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量存储情绪分类结果和生成的诗歌
+        let detectedEmotion = null;
+        let generatedPoem = "";
+        
+        // DOM元素加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素引用
+            const emotionStatus = document.getElementById('emotion-status');
+            const emotionResult = document.getElementById('emotion-result');
+            const generatePoemBtn = document.getElementById('generate-poem-btn');
+            const poemLoading = document.getElementById('poem-loading');
+            const poemPrompt = document.getElementById('poem-prompt');
+            const poemResult = document.getElementById('poem-result');
+            const poemContent = document.querySelector('.poem-content');
+            const downloadSection = document.getElementById('download-section');
+            const downloadPoemBtn = document.getElementById('download-poem');
+            const userForm = document.getElementById('user-form');
+            
+            // 模拟脑电信号数据
+            const mockEEGData = Array.from({length: 100}, () => Math.random() * 100);
+            
+            // 发送脑电信号到后端进行情绪分类
+            fetch('/classify_emotion', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({eeg_data: mockEEGData})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // 隐藏加载状态，显示情绪结果
+                    emotionStatus.classList.add('hidden');
+                    
+                    // 存储检测到的情绪
+                    detectedEmotion = data.emotion;
+                    
+                    // 设置情绪文本和样式
+                    let emotionText, emotionColor;
+                    switch(detectedEmotion) {
+                        case 'positive':
+                            emotionText = 'Positive';
+                            emotionColor = 'text-green-600';
+                            break;
+                        case 'negative':
+                            emotionText = 'Negative';
+                            emotionColor = 'text-red-600';
+                            break;
+                        case 'neutral':
+                            emotionText = 'Neutral';
+                            emotionColor = 'text-blue-600';
+                            break;
+                        default:
+                            emotionText = 'Unknown';
+                            emotionColor = 'text-gray-600';
+                    }
+                    
+                    // 显示情绪结果
+                    emotionResult.innerHTML = `
+                        <p class="mb-2">The model has detected your current emotion as:</p>
+                        <p class="text-2xl font-bold ${emotionColor}">${emotionText}</p>
+                    `;
+                    emotionResult.classList.remove('hidden');
+                    
+                    // 启用生成诗歌按钮
+                    generatePoemBtn.disabled = false;
+                } else {
+                    emotionStatus.innerHTML = 'Error classifying emotion. Please try again.';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                emotionStatus.innerHTML = 'Error connecting to server. Please try again.';
+            });
+            
+            // 生成诗歌按钮点击事件
+            generatePoemBtn.addEventListener('click', function() {
+                // 验证表单
+                if (!validateForm()) {
+                    return;
+                }
+                
+                // 收集用户数据
+                const formData = new FormData(userForm);
+                const userData = {
+                    emotion: detectedEmotion,
+                    gender: formData.get('gender'),
+                    age: formData.get('age'),
+                    occupation: formData.get('occupation'),
+                    relationship_with_person: formData.get('relationship_with_person'),
+                    how_you_refer_to_person: formData.get('how_you_refer_to_person'),
+                    event_involving_person: formData.get('event_involving_person'),
+                    place_where_event_occured: formData.get('place_where_event_occured'),
+                    visual_detail: formData.get('visual_detail'),
+                    auditory_detail: formData.get('auditory_detail'),
+                    tactile_detail: formData.get('tactile_detail')
+                };
+                
+                // 显示加载状态
+                poemPrompt.classList.add('hidden');
+                poemResult.classList.add('hidden');
+                downloadSection.classList.add('hidden');
+                poemLoading.classList.remove('hidden');
+
+                // 准备引言文本并拆分为单词
+                const quoteText = "Magic in progress. Thank you for telling your story.";
+                const quoteWords = quoteText.split(' ');
+                const animatedQuote = document.getElementById('animated-quote');
+                // 清空容器（防止多次点击时重复添加）
+                animatedQuote.innerHTML = '';
+
+                // 创建单词元素并设置初始状态
+                quoteWords.forEach((word, index) => {
+                    const wordSpan = document.createElement('span');
+                    wordSpan.textContent = word;
+                    wordSpan.className = 'opacity-0 translate-y-2 transition-all duration-700 ease-out inline-block mr-2';
+                    animatedQuote.appendChild(wordSpan);
+                });
+
+                // 计算每个单词的显示间隔（总时长保持不变但动画更流畅）
+                const totalDuration = 15000; // 15秒完成全部动画
+                const interval = totalDuration / quoteWords.length;
+
+                // 逐个显示单词
+                quoteWords.forEach((_, index) => {
+                    setTimeout(() => {
+                        const wordElement = animatedQuote.children[index];
+                        wordElement.classList.remove('opacity-0', 'translate-y-2');
+                        wordElement.classList.add('opacity-100', 'translate-y-0');
+                    }, index * interval);
+                });
+
+                // 适当换行逻辑
+                function addLineBreaks() {
+                    const quoteContainer = document.querySelector('.quote-container');
+                    const containerWidth = quoteContainer.offsetWidth;
+                    const words = animatedQuote.children;
+                    
+                    let currentWidth = 0;
+                    for (let i = 0; i < words.length; i++) {
+                        currentWidth += words[i].offsetWidth;
+                        
+                        // 针对这句文本的最佳换行位置（按语义拆分）
+                        if ([3, 7, 11].includes(i)) { // 第3个词后、第7个词后、第11个词后换行
+                            words[i].textContent += '\n';
+                            currentWidth = 0;
+                        }
+                    }
+                }
+
+                // 初始加载和窗口大小改变时添加换行
+                setTimeout(addLineBreaks, 100); // 延迟确保元素渲染
+                window.addEventListener('resize', addLineBreaks);
+                
+                // 发送数据到后端生成完整记忆（诗歌+音乐+图片）- 多智能体系统
+                fetch('/generate_complete_memory', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        eeg_data: mockEEGData,
+                        user_data: userData
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // 隐藏加载状态
+                    poemLoading.classList.add('hidden');
+
+                    if (data.status === 'success') {
+                        // 保存生成的数据
+                        generatedPoem = data.poem;
+                        window.generatedData = data; // 存储完整数据供下载使用
+                        
+                        // 显示诗歌结果
+                        poemResult.classList.remove('hidden');
+                        
+                        // 格式化诗歌（按换行符分割）
+                        const poemLines = data.poem.split('\n');
+                        poemContent.innerHTML = '';
+                        
+                        // 逐行显示诗歌，添加动画效果
+                        poemLines.forEach((line, index) => {
+                            setTimeout(() => {
+                                const lineElement = document.createElement('div');
+                                lineElement.className = 'poem-line opacity-0';
+                                lineElement.textContent = line;
+                                poemContent.appendChild(lineElement);
+                                
+                                // 触发重排后添加不透明度
+                                setTimeout(() => {
+                                    lineElement.classList.remove('opacity-0');
+                                    lineElement.classList.add('opacity-100');
+                                }, 10);
+                            }, index * 200); // 每行延迟200ms显示
+                        });
+                        
+                        // 显示下载按钮
+                        setTimeout(() => {
+                            downloadSection.classList.remove('hidden');
+                        }, poemLines.length * 200);
+
+                        // 生成诗歌朗读（TTS功能）
+                        setTimeout(() => {
+                            generateNarration(data.poem, data.emotion);
+                        }, poemLines.length * 200 + 300);
+
+                        // 显示音乐和图片（多智能体新功能）
+                        setTimeout(() => {
+                            displayMultimedia(data);
+                        }, poemLines.length * 200 + 500);
+                    } else {
+                        // 显示错误信息
+                        poemPrompt.innerHTML = `
+                            <i class="fa fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+                            <p class="text-lg text-gray-600">Error generating poem: ${data.message}</p>
+                            <button id="retry-btn" class="mt-4 bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-lg transition-colors">
+                                Try Again
+                            </button>
+                        `;
+                        poemPrompt.classList.remove('hidden');
+                        
+                        // 添加重试按钮事件
+                        document.getElementById('retry-btn').addEventListener('click', function() {
+                            generatePoemBtn.click();
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    poemLoading.classList.add('hidden');
+                    poemPrompt.innerHTML = `
+                        <i class="fa fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+                        <p class="text-lg text-gray-600">Error connecting to server. Please try again.</p>
+                        <button id="retry-btn" class="mt-4 bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-lg transition-colors">
+                            Try Again
+                        </button>
+                    `;
+                    poemPrompt.classList.remove('hidden');
+                    
+                    // 添加重试按钮事件
+                    document.getElementById('retry-btn').addEventListener('click', function() {
+                        generatePoemBtn.click();
+                    });
+                });
+            });
+            
+            // 下载诗歌按钮点击事件
+            downloadPoemBtn.addEventListener('click', function() {
+                if (!generatedPoem) return;
+                
+                // 创建一个简单的Word文档（.docx格式）
+                const zip = new JSZip();
+                
+                // Word文档的基本结构
+                const content = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                    <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                        <w:body>
+                            <w:p>
+                                <w:r>
+                                    <w:t>Memory INK - Personalized Poem</w:t>
+                                </w:r>
+                            </w:p>
+                            <w:p>
+                                <w:r>
+                                    <w:t>Emotion: ${detectedEmotion}</w:t>
+                                </w:r>
+                            </w:p>
+                            <w:p>
+                                <w:r>
+                                    <w:t>Generated on: ${new Date().toLocaleString()}</w:t>
+                                </w:r>
+                            </w:p>
+                            <w:p></w:p>
+                            ${generatedPoem.split('\n').map(line => `
+                                <w:p>
+                                    <w:r>
+                                        <w:t>${line}</w:t>
+                                    </w:r>
+                                </w:p>
+                            `).join('')}
+                        </w:body>
+                    </w:document>`;
+                
+                // 添加文档内容到zip包
+                zip.file("word/document.xml", content);
+                
+                // 添加必要的Word文档结构文件
+                zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8"?>
+                    <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+                        <Default Extension="xml" ContentType="application/xml"/>
+                        <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+                    </Types>`);
+                
+                zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8"?>
+                    <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+                    </Relationships>`);
+                
+                zip.file("word/_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8"?>
+                    <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                    </Relationships>`);
+                
+                // 生成并下载文件
+                zip.generateAsync({type: "blob"}).then(function(content) {
+                    saveAs(content, "mindful_verse_poem.docx");
+                });
+            });
+
+            // 显示多媒体内容（音乐和图片）
+            function displayMultimedia(data) {
+                const multimediaSection = document.getElementById('multimedia-section');
+
+                // 显示图片
+                if (data.image && data.image.url) {
+                    const memoryImage = document.getElementById('memory-image');
+                    const imageDescription = document.getElementById('image-description');
+
+                    memoryImage.src = data.image.url;
+                    memoryImage.alt = data.image.description || 'Memory Scene';
+                    imageDescription.textContent = data.image.description || '';
+                }
+
+                // 显示音乐
+                if (data.music && data.music.title) {
+                    const musicTitle = document.getElementById('music-title');
+                    const musicDescription = document.getElementById('music-description');
+                    const musicExplanation = document.getElementById('music-explanation');
+                    const audioSource = document.getElementById('audio-source');
+                    const audioPlayer = document.getElementById('audio-player');
+
+                    musicTitle.textContent = data.music.title;
+                    musicDescription.textContent = data.music.description || '';
+                    musicExplanation.textContent = `Music selected to match your ${data.emotion} emotion`;
+
+                    if (data.music.url) {
+                        audioSource.src = data.music.url;
+                        audioPlayer.load();
+                    }
+                }
+
+                // 显示多媒体区域并滚动到该位置
+                multimediaSection.classList.remove('hidden');
+                setTimeout(() => {
+                    multimediaSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 300);
+            }
+
+            // 生成诗歌朗读（含背景音乐）
+            function generateNarration(poem, emotion) {
+                const narrationSection = document.getElementById('narration-section');
+                const narrationStatus = document.getElementById('narration-status');
+                const narrationPlayer = document.getElementById('narration-player');
+                const narrationSource = document.getElementById('narration-source');
+
+                // Display narration section
+                narrationSection.classList.remove('hidden');
+                narrationStatus.textContent = 'Generating voice and background music...';
+
+                // Call TTS+Music API
+                fetch('/generate_narration', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        poem: poem,
+                        emotion: emotion
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        if (data.mixed && data.audio_base64) {
+                            // Server-side mixed (pydub)
+                            const audioBlob = base64ToBlob(data.audio_base64, 'audio/mpeg');
+                            const audioUrl = URL.createObjectURL(audioBlob);
+
+                            narrationSource.src = audioUrl;
+                            narrationPlayer.load();
+                            narrationStatus.textContent = 'Ready (with background music)';
+
+                            console.log('[Narration] Mixed audio ready (server-side)');
+                        } else if (data.method === 'web_audio') {
+                            // Client-side mixing (Web Audio API)
+                            mixAudioOnClient(data);
+                            narrationStatus.textContent = 'Ready (client-side mixing)';
+                        } else {
+                            // Narration only (no background music)
+                            const audioBlob = base64ToBlob(data.audio_base64, 'audio/mpeg');
+                            const audioUrl = URL.createObjectURL(audioBlob);
+
+                            narrationSource.src = audioUrl;
+                            narrationPlayer.load();
+                            narrationStatus.textContent = 'Ready (narration only)';
+                        }
+                    } else {
+                        narrationStatus.textContent = 'Generation failed';
+                        console.error('[Narration] Error:', data.message);
+                    }
+                })
+                .catch(error => {
+                    narrationStatus.textContent = 'Generation failed';
+                    console.error('[Narration] Error:', error);
+                });
+            }
+
+            // Client-side audio mixing (Web Audio API)
+            function mixAudioOnClient(data) {
+                const narrationBlob = base64ToBlob(data.narration_base64, 'audio/mpeg');
+                const narrationUrl = URL.createObjectURL(narrationBlob);
+                const backgroundUrl = data.background_music_url;
+
+                // 创建Web Audio上下文
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // 创建音频元素
+                const narrationAudio = new Audio(narrationUrl);
+                const backgroundAudio = new Audio(backgroundUrl);
+
+                // 创建音频源节点
+                const narrationSource = audioContext.createMediaElementSource(narrationAudio);
+                const backgroundSource = audioContext.createMediaElementSource(backgroundAudio);
+
+                // 创建增益节点（控制音量）
+                const narrationGain = audioContext.createGain();
+                const backgroundGain = audioContext.createGain();
+
+                narrationGain.gain.value = data.narration_volume || 1.0;
+                backgroundGain.gain.value = data.background_volume || 0.3;
+
+                // 连接节点
+                narrationSource.connect(narrationGain);
+                backgroundSource.connect(backgroundGain);
+                narrationGain.connect(audioContext.destination);
+                backgroundGain.connect(audioContext.destination);
+
+                // 简化方案：直接播放narration，背景音乐作为辅助
+                // 实际上我们只需要在播放器中加载narration
+                const narrationPlayer = document.getElementById('narration-player');
+                const narrationSourceElem = document.getElementById('narration-source');
+
+                narrationSourceElem.src = narrationUrl;
+                narrationPlayer.load();
+
+                // 监听播放事件，同步播放背景音乐
+                narrationPlayer.addEventListener('play', () => {
+                    backgroundAudio.volume = data.background_volume || 0.3;
+                    backgroundAudio.loop = true;
+                    backgroundAudio.play();
+                });
+
+                narrationPlayer.addEventListener('pause', () => {
+                    backgroundAudio.pause();
+                });
+
+                narrationPlayer.addEventListener('ended', () => {
+                    backgroundAudio.pause();
+                    backgroundAudio.currentTime = 0;
+                });
+
+                console.log('[Web Audio] Client-side mixing configured');
+            }
+
+            // Base64转Blob辅助函数
+            function base64ToBlob(base64, mimeType) {
+                const byteCharacters = atob(base64);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                return new Blob([byteArray], { type: mimeType });
+            }
+
+            // 表单验证函数
+            function validateForm() {
+                const gender = document.getElementById('gender').value;
+                const age = document.getElementById('age').value;
+                const occupation = document.getElementById('occupation').value;
+                const relationship = document.getElementById('relationship_with_person').value;
+                const referral = document.getElementById('how_you_refer_to_person').value;
+                const event = document.getElementById('event_involving_person').value;
+                const place = document.getElementById('place_where_event_occured').value;
+                
+                // 验证必填项
+                if (!gender || !age || !occupation || !relationship || !referral || !event || !place) {
+                    alert('Please fill in all required fields.');
+                    return false;
+                }
+                
+                if (age < 1 || age > 120) {
+                    alert('Please enter a valid age between 1 and 120.');
+                    return false;
+                }
+                
+                return true;
+            }
+        });
+    </script>
+</body>
+</html>

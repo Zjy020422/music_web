@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory INK - AI Emotion Poetry Generation System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 统一样式配置 - 与 index.html 保持一致 */
+        :root {
+            --primary-color: #4F46E5;
+            --secondary-color: #EC4899;
+            --neutral-color: #64748B;
+        }
+
+        /* 全局字体配置 */
+        * {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+        }
+
+        body {
+            background-image: url('https://picsum.photos/id/1055/1920/1080');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* 背景渐变覆盖层 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* 标题字体 */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Inter', system-ui, sans-serif !important;
+        }
+
+        /* 诗歌相关内容使用衬线字体 */
+        .poem-content, blockquote, .quote {
+            font-family: 'Merriweather', Georgia, serif !important;
+        }
+
+        /* 导航栏优化 */
+        .navbar {
+            background: rgba(255, 255, 255, 0.9) !important;
+            backdrop-filter: blur(10px);
+        }
+
+        .navbar.scrolled {
+            background: rgba(255, 255, 255, 0.95) !important;
+            box-shadow: 0 2px 10px rgba(79, 70, 229, 0.1);
+        }
+
+        /* 主色调应用 */
+        a {
+            color: var(--primary-color);
+        }
+
+        a:hover {
+            color: var(--secondary-color);
+        }
+
+        /* 按钮样式 */
+        .btn-primary, .btn-nav, .btn-submit {
+            background: linear-gradient(135deg, var(--primary-color), #6366f1) !important;
+            border: none !important;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover, .btn-nav:hover, .btn-submit:hover {
+            background: linear-gradient(135deg, #4338ca, var(--primary-color)) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent !important;
+            border: 2px solid var(--primary-color) !important;
+            color: var(--primary-color) !important;
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary-color) !important;
+            color: white !important;
+        }
+
+        /* Hero 区域优化 */
+        .hero {
+            background: transparent;
+        }
+
+        .hero-overlay {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%);
+        }
+
+        /* 徽章样式 */
+        .badge, .section-badge {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+            color: white !important;
+            padding: 0.5em 1.2em;
+            border-radius: 25px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        /* 卡片样式 */
+        .product-card, .feature-item, .project-card, .team-card, .info-card {
+            background: rgba(255, 255, 255, 0.85) !important;
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 1px solid rgba(79, 70, 229, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .product-card:hover, .feature-item:hover, .project-card:hover, .team-card:hover, .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(79, 70, 229, 0.2);
+            border-color: var(--primary-color);
+        }
+
+        /* 图标样式 */
+        .card-icon, .feature-icon, .info-icon {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+            color: white !important;
+        }
+
+        .card-icon i, .feature-icon i, .info-icon i {
+            color: white !important;
+        }
+
+        /* Section 标题 */
+        .section-title {
+            color: #1f2937;
+        }
+
+        .section-subtitle {
+            color: var(--neutral-color);
+        }
+
+        /* Footer 优化 */
+        .footer {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Workflow箭头颜色 */
+        .workflow-arrow {
+            color: var(--primary-color);
+        }
+
+        /* 表单输入框 */
+        input:focus, textarea:focus {
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+        }
+
+        /* 链接颜色 */
+        .nav-menu a {
+            color: #1f2937;
+        }
+
+        .nav-menu a:hover {
+            color: var(--primary-color);
+        }
+
+        /* 数字标记 */
+        .card-number, .workflow-icon {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
+
+        /* 统一布局尺寸 */
+        .container {
+            max-width: 1152px !important; /* 与 index.html 的 max-w-6xl 一致 */
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        /* 统一字体大小 */
+        h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem) !important;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-size: clamp(1.5rem, 4vw, 2.5rem) !important;
+            line-height: 1.3;
+        }
+
+        h3 {
+            font-size: clamp(1.25rem, 3vw, 1.75rem) !important;
+            line-height: 1.4;
+        }
+
+        h4 {
+            font-size: clamp(1rem, 2.5vw, 1.25rem) !important;
+            line-height: 1.5;
+        }
+
+        p {
+            font-size: clamp(1rem, 2vw, 1.125rem) !important;
+            line-height: 1.6;
+        }
+
+        /* 统一间距 */
+        .section {
+            padding-top: 5rem;
+            padding-bottom: 5rem;
+        }
+
+        /* 卡片统一尺寸 */
+        .product-card, .feature-item, .project-card, .team-card, .info-card {
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Hero 区域标题 */
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4rem) !important;
+            margin-bottom: 1rem;
+        }
+
+        .hero h2 {
+            font-size: clamp(1.5rem, 4vw, 2.5rem) !important;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero p {
+            font-size: clamp(1rem, 2vw, 1.25rem) !important;
+        }
+
+        /* Section 标题统一 */
+        .section-title {
+            font-size: clamp(1.75rem, 4.5vw, 2.75rem) !important;
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            font-size: clamp(1rem, 2.5vw, 1.25rem) !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="16" cy="16" r="14" fill="url(#gradient1)"/>
+                    <path d="M16 8L20 14H12L16 8Z" fill="white" opacity="0.9"/>
+                    <circle cx="16" cy="19" r="3" fill="white" opacity="0.9"/>
+                    <defs>
+                        <linearGradient id="gradient1" x1="0" y1="0" x2="32" y2="32">
+                            <stop offset="0%" stop-color="#FF9A9E"/>
+                            <stop offset="100%" stop-color="#FAD0C4"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>Memory INK</span>
+                <span style="font-size: 0.7em; font-weight: 600; color: var(--primary-color); margin-left: 10px; font-style: italic;">Your Story, Preserved.</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#product">Product</a></li>
+                <li><a href="#project">Overview</a></li>
+                <li><a href="#market">Market</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#team">Team</a></li>
+                <li><a href="#contact">Contact</a></li>
+                <li><a href="/app" class="btn-nav">Try Now</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-overlay"></div>
+        <div class="container">
+            <div class="hero-content">
+                <span class="badge">Caring for Every Precious Memory</span>
+                <h1>Memory INK</h1>
+                <h2>AI Emotion Poetry Generation System</h2>
+                <p class="hero-description">Emotional Memory Assistant for Alzheimer's Patients<br>Let Warm Poetry Accompany Every Moment</p>
+                <div class="hero-buttons">
+                    <a href="/app" class="btn-primary">
+                        <span>Get Started</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                    <a href="#project" class="btn-secondary">
+                        <span>Learn More</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 产品介绍 Section -->
+    <section id="product" class="section product-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">Our Advantages</span>
+                <h2 class="section-title">Product Introduction</h2>
+                <p class="section-subtitle">Combining technology and art to protect precious memories</p>
+            </div>
+
+            <div class="product-grid">
+                <div class="product-card">
+                    <div class="card-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3>EEG Signal Recognition</h3>
+                    <p>Real-time monitoring and analysis of patients' emotional states through advanced EEG signal acquisition technology</p>
+                </div>
+                <div class="product-card">
+                    <div class="card-icon">
+                        <i class="fas fa-pen-fancy"></i>
+                    </div>
+                    <h3>Personalized Poetry Generation</h3>
+                    <p>Generate exclusive emotional poetry based on patients' memories and emotions to awaken precious memories</p>
+                </div>
+                <div class="product-card">
+                    <div class="card-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <h3>Emotional Companionship</h3>
+                    <p>Provide warm emotional support and psychological comfort to patients through the art form of poetry</p>
+                </div>
+            </div>
+
+            <!-- 商业销售点 -->
+            <div class="features-section">
+                <h3>Why Choose Us</h3>
+                <div class="features-grid">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Technological Innovation</h4>
+                            <p>Combining the latest AI technology with EEG signal analysis to provide accurate emotion recognition</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-hands-helping"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Humanistic Care</h4>
+                            <p>Specifically designed for Alzheimer's patients, focusing on emotional expression and memory protection</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Usability</h4>
+                            <p>Simple and intuitive interface design, convenient for both patients and caregivers</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-headset"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Professional Support</h4>
+                            <p>Providing comprehensive technical support and after-sales service</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 品牌介绍 -->
+            <div class="brand-section">
+                <div class="brand-content">
+                    <h3>About the Brand</h3>
+                    <p><strong style="color: #FF8BA0;">Memory INK</strong> is dedicated to providing innovative emotional support solutions for Alzheimer's patients and their families through the combination of technology and art. We believe that every memory is worth cherishing, and every emotion should be treated with tenderness.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 项目介绍 Section -->
+    <section id="project" class="section project-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">In-Depth Understanding</span>
+                <h2 class="section-title">Project Overview</h2>
+            </div>
+
+            <div class="project-grid">
+                <div class="project-card">
+                    <div class="card-number">01</div>
+                    <h3>
+                        <i class="fas fa-book-open"></i>
+                        Project Background
+                    </h3>
+                    <p>With the intensification of population aging, the number of Alzheimer's patients continues to grow. This project aims to help patients retain emotional memories through AI technology, improve quality of life, and bring more hope to patient families.</p>
+                </div>
+
+                <div class="project-card">
+                    <div class="card-number">02</div>
+                    <h3>
+                        <i class="fas fa-laptop-code"></i>
+                        Core Technologies
+                    </h3>
+                    <ul class="tech-list">
+                        <li><i class="fas fa-check"></i> EEG Signal Acquisition and Processing Technology</li>
+                        <li><i class="fas fa-check"></i> Deep Learning Emotion Classification Model</li>
+                        <li><i class="fas fa-check"></i> Natural Language Processing and Generation (Deepseek AI)</li>
+                        <li><i class="fas fa-check"></i> Personalized Content Generation Algorithm</li>
+                    </ul>
+                </div>
+
+                <div class="project-card workflow-card">
+                    <div class="card-number">03</div>
+                    <h3>
+                        <i class="fas fa-project-diagram"></i>
+                        Workflow
+                    </h3>
+                    <div class="workflow">
+                        <div class="workflow-item">
+                            <div class="workflow-icon">1</div>
+                            <p>Acquire EEG Signals</p>
+                        </div>
+                        <div class="workflow-arrow"><i class="fas fa-arrow-right"></i></div>
+                        <div class="workflow-item">
+                            <div class="workflow-icon">2</div>
+                            <p>Emotion Recognition Analysis</p>
+                        </div>
+                        <div class="workflow-arrow"><i class="fas fa-arrow-right"></i></div>
+                        <div class="workflow-item">
+                            <div class="workflow-icon">3</div>
+                            <p>Collect Memory Information</p>
+                        </div>
+                        <div class="workflow-arrow"><i class="fas fa-arrow-right"></i></div>
+                        <div class="workflow-item">
+                            <div class="workflow-icon">4</div>
+                            <p>Generate Personalized Poetry</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 项目视频 -->
+            <div class="video-section">
+                <h3><i class="fas fa-video"></i> Project Demonstration</h3>
+                <div class="video-wrapper">
+                    <div class="video-placeholder">
+                        <i class="fas fa-play-circle"></i>
+                        <p>Project Demonstration Video</p>
+                        <span>(To be added)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Target Audience / Market Section -->
+    <section id="market" class="section" style="background: rgba(255, 250, 245, 0.3);">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">Market & Partnerships</span>
+                <h2 class="section-title">Target Audience</h2>
+                <p class="section-subtitle">Proven collaboration with leading healthcare institutions</p>
+            </div>
+
+            <!-- Healthcare Partnerships Title -->
+            <div style="margin-bottom: 2rem; text-align: center;">
+                <h3 style="font-size: 2rem; color: #1f2937; font-weight: 700; margin: 0;">Healthcare Partnerships</h3>
+            </div>
+
+            <!-- First Row: Main Content and Image -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; margin-bottom: 3rem;">
+                <div class="project-card">
+                    <p>We mainly collaborate with nursing homes, especially high-end nursing homes in Shanghai. We have previously connected with a nursing home to over 500 elders overall and over 70 AD patients, collaborating on a poetry-related event a year ago. They showed interest in working together in the future.</p>
+                </div>
+                <div class="image-container">
+                    <img src="{{ url_for('static', filename='media/market.jpg') }}" alt="Nursing Home Partnership" style="width: 100%; height: auto; border-radius: 15px; box-shadow: 0 10px 30px rgba(79, 70, 229, 0.2);">
+                </div>
+            </div>
+
+            <!-- Second Row: Four Key Statistics -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; justify-items: center;">
+                <div class="info-card" style="text-align: center; padding: 2.5rem 1.5rem; min-height: 200px; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%;">
+                    <div style="height: 100px; display: flex; align-items: center; justify-content: center; margin: 0 0 0.5rem 0; width: 100%;">
+                        <h4 style="font-size: 4rem; color: var(--primary-color); font-weight: 700; margin: 0;">500+</h4>
+                    </div>
+                    <h4 style="font-size: 1.3rem; color: #1f2937; font-weight: 600; margin: 0; height: 3rem; display: flex; align-items: center; justify-content: center; text-align: center; width: 100%;">Elders Engaged</h4>
+                </div>
+                <div class="info-card" style="text-align: center; padding: 2.5rem 1.5rem; min-height: 200px; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%;">
+                    <div style="height: 100px; display: flex; align-items: center; justify-content: center; margin: 0 0 0.5rem 0; width: 100%;">
+                        <h4 style="font-size: 4rem; color: var(--primary-color); font-weight: 700; margin: 0;">70+</h4>
+                    </div>
+                    <h4 style="font-size: 1.3rem; color: #1f2937; font-weight: 600; margin: 0; height: 3rem; display: flex; align-items: center; justify-content: center; text-align: center; width: 100%;">AD Patients</h4>
+                </div>
+                <div class="info-card" style="text-align: center; padding: 2.5rem 1.5rem; min-height: 200px; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%;">
+                    <div style="height: 100px; display: flex; align-items: center; justify-content: center; margin: 0 0 0.5rem 0; width: 100%;">
+                        <h4 style="font-size: 4rem; color: var(--primary-color); font-weight: 700; margin: 0;">✓</h4>
+                    </div>
+                    <h4 style="font-size: 1.3rem; color: #1f2937; font-weight: 600; margin: 0; height: 3rem; display: flex; align-items: center; justify-content: center; text-align: center; width: 100%;">Poetry Events</h4>
+                </div>
+                <div class="info-card" style="text-align: center; padding: 2.5rem 1.5rem; min-height: 200px; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%;">
+                    <div style="height: 100px; display: flex; align-items: center; justify-content: center; margin: 0 0 0.5rem 0; width: 100%;">
+                        <h4 style="font-size: 4rem; color: var(--primary-color); font-weight: 700; margin: 0;">✓</h4>
+                    </div>
+                    <h4 style="font-size: 1.3rem; color: #1f2937; font-weight: 600; margin: 0; height: 3rem; display: flex; align-items: center; justify-content: center; text-align: center; width: 100%;">Partnership Opportunities</h4>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="section" style="background: rgba(255, 250, 245, 0.3);">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">Investment</span>
+                <h2 class="section-title">Pricing</h2>
+                <p class="section-subtitle">Affordable solutions for every family</p>
+            </div>
+
+            <!-- Pricing Toggle -->
+            <div style="text-align: center; margin-bottom: 3rem;">
+                <div style="display: inline-flex; background: var(--bg-white); border-radius: 50px; padding: 0.5rem; box-shadow: 0 2px 12px rgba(0,0,0,0.1);">
+                    <button id="standardPriceBtn" class="price-toggle-btn active" onclick="togglePrice('standard')" style="padding: 1rem 2.5rem; border: none; background: var(--primary-color); color: white; border-radius: 50px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                        Standard Pricing
+                    </button>
+                    <button id="discountPriceBtn" class="price-toggle-btn" onclick="togglePrice('discount')" style="padding: 1rem 2.5rem; border: none; background: transparent; color: #64748B; border-radius: 50px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                        Family Discount
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pricing Card -->
+            <div style="max-width: 800px; margin: 0 auto;">
+                <div class="project-card" style="background: var(--bg-white); border-radius: 20px; padding: 4rem 3rem; box-shadow: 0 8px 32px rgba(0,0,0,0.1); position: relative; overflow: hidden;">
+                    <!-- Decorative Badge -->
+                    <div style="position: absolute; top: 20px; right: 20px; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; padding: 0.5rem 1.2rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+                        Popular Choice
+                    </div>
+
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <h3 style="font-size: 2.2rem; color: #1f2937; margin-bottom: 0.5rem;">EEG Cap Device</h3>
+                        <p style="font-size: 1.2rem; color: #64748B;">Complete poetry generation service included</p>
+                    </div>
+
+                    <!-- Price Display -->
+                    <div id="priceDisplay" style="text-align: center; margin: 2rem 0;">
+                        <div id="standardPrice">
+                            <div style="font-size: 4.5rem; font-weight: 700; color: var(--primary-color); margin-bottom: 0.2rem;">
+                                ¥2,999
+                            </div>
+                            <p style="font-size: 1.2rem; color: #64748B;">Standard Price</p>
+                        </div>
+                        <div id="discountPrice" style="display: none;">
+                            <div style="font-size: 4.5rem; font-weight: 700; color: var(--primary-color); margin-bottom: 0.2rem;">
+                                ¥1,750 - ¥2,520
+                            </div>
+                            <p style="font-size: 1.2rem; color: #64748B;">For financially difficult families</p>
+                        </div>
+                    </div>
+
+                    <!-- Free Membership Services -->
+                    <div style="margin: 3rem 0; padding: 2.5rem; background: rgba(79, 70, 229, 0.05); border-radius: 16px;">
+                        <h4 style="font-size: 1.6rem; color: #1f2937; margin-bottom: 1.5rem; text-align: center;">
+                            <span style="color: var(--primary-color);">✓</span> Free Membership Services
+                        </h4>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                <span style="width: 40px; height: 40px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold;">✓</span>
+                                <span style="font-size: 1.15rem; color: #64748B;">Device Maintenance</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                <span style="width: 40px; height: 40px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold;">✓</span>
+                                <span style="font-size: 1.15rem; color: #64748B;">Regular Updates</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                <span style="width: 40px; height: 40px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold;">✓</span>
+                                <span style="font-size: 1.15rem; color: #64748B;">Technical Support</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                <span style="width: 40px; height: 40px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold;">✓</span>
+                                <span style="font-size: 1.15rem; color: #64748B;">Lifetime Warranty</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CTA Button -->
+                    <div style="text-align: center; margin-top: 2rem;">
+                        <a href="/app" class="btn-primary" style="display: inline-flex; align-items: center; gap: 10px; font-size: 1.2rem; padding: 1.2rem 3rem; text-decoration: none;">
+                            <i class="fa fa-phone"></i>
+                            Contact Us for Purchase
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Note -->
+            <div style="text-align: center; margin-top: 2rem; padding: 0 2rem;">
+                <p style="font-size: 1.1rem; color: #64748B; font-style: italic;">
+                    * Family discount available for financially difficult families. Contact us to learn more about eligibility.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        function togglePrice(type) {
+            const standardBtn = document.getElementById('standardPriceBtn');
+            const discountBtn = document.getElementById('discountPriceBtn');
+            const standardPrice = document.getElementById('standardPrice');
+            const discountPrice = document.getElementById('discountPrice');
+
+            if (type === 'standard') {
+                standardBtn.style.background = 'var(--primary-color)';
+                standardBtn.style.color = 'white';
+                discountBtn.style.background = 'transparent';
+                discountBtn.style.color = '#64748B';
+                standardPrice.style.display = 'block';
+                discountPrice.style.display = 'none';
+            } else {
+                standardBtn.style.background = 'transparent';
+                standardBtn.style.color = '#64748B';
+                discountBtn.style.background = 'var(--primary-color)';
+                discountBtn.style.color = 'white';
+                standardPrice.style.display = 'none';
+                discountPrice.style.display = 'block';
+            }
+        }
+    </script>
+
+    <!-- Our Team Section -->
+    <section id="team" class="section team-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">Meet Us</span>
+                <h2 class="section-title">Our Team</h2>
+                <p class="section-subtitle">Two passionate students from YK Pao School combining technology and business expertise</p>
+            </div>
+
+            <div class="team-grid" style="display: flex; justify-content: center; gap: 3rem; flex-wrap: wrap;">
+                <div class="team-card" style="max-width: 400px;">
+                    <div class="team-photo">
+                        <img src="{{ url_for('static', filename='media/momo_image.JPG') }}" alt="Momo Xu" style="width: 200px; height: 200px; object-fit: cover; border-radius: 50%;">
+                    </div>
+                    <div class="team-info">
+                        <h3>Momo Xu</h3>
+                        <p class="role">Team Leader - Technology</p>
+                        <p class="bio"><strong>YK Pao School, Shanghai</strong><br>
+                        IBDP Biology student who has interviewed Hangzhou Brain Computer Interfaces (BCI) company employees to gain deep insights into EEG technology. Published author in literary prose and co-founder of bilingual school poetry club.</p>
+                    </div>
+                </div>
+
+                <div class="team-card" style="max-width: 400px;">
+                    <div class="team-photo">
+                        <img src="{{ url_for('static', filename='media/leo_image.png') }}" alt="Leo Chen" style="width: 200px; height: 200px; object-fit: cover; border-radius: 50%;">
+                    </div>
+                    <div class="team-info">
+                        <h3>Leo Chen</h3>
+                        <p class="role">Team Member - Business</p>
+                        <p class="bio"><strong>YK Pao School, Shanghai</strong><br>
+                        IGCSE Business and Biology student with prior experience in market research and business analysis. Multiple-time award-winning debater and strong speaker, excelling in presentations to potential investors and buyers.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Us Section -->
+    <section id="contact" class="section contact-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">Stay Connected</span>
+                <h2 class="section-title">Contact Us</h2>
+            </div>
+
+            <div class="contact-wrapper">
+                <div class="contact-info">
+                    <div class="info-card">
+                        <div class="info-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <h4>Email</h4>
+                        <p>momoxu2027@outlook.com</p>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-icon">
+                            <i class="fas fa-phone-alt"></i>
+                        </div>
+                        <h4>Phone Number</h4>
+                        <p>+86 13917368398</p>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-icon">
+                            <i class="fas fa-share-alt"></i>
+                        </div>
+                        <h4>Social Media</h4>
+                        <p>WeChat | Weibo | LinkedIn</p>
+                    </div>
+                </div>
+
+                <div class="contact-form-wrapper">
+                    <form class="contact-form">
+                        <h3>Send Message</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <input type="text" placeholder="Your Name" required>
+                            </div>
+                            <div class="form-group">
+                                <input type="email" placeholder="Your Email" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <input type="tel" placeholder="Phone Number">
+                        </div>
+                        <div class="form-group">
+                            <textarea placeholder="Message" rows="5" required></textarea>
+                        </div>
+                        <button type="submit" class="btn-submit">
+                            <span>Send</span>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="16" cy="16" r="14" fill="white" opacity="0.9"/>
+                            <path d="M16 8L20 14H12L16 8Z" fill="#FF9A9E"/>
+                            <circle cx="16" cy="19" r="3" fill="#FF9A9E"/>
+                        </svg>
+                        <span>Memory INK</span>
+                    </div>
+                    <p class="footer-slogan">Where technology meets tenderness, safeguarding every precious memory</p>
+                </div>
+                <div class="footer-bottom">
+                    <p>&copy; 2025 Memory INK. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // 滚动动画
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.product-card, .feature-item, .project-card, .team-card, .info-card').forEach(el => {
+            observer.observe(el);
+        });
+
+        // 导航栏滚动效果
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+    </script>
+</body>
+</html>
